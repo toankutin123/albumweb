@@ -8,18 +8,18 @@ RUN npm install
 COPY . .
 RUN npm run build
 
+# Fail the build immediately if Vite did not produce dist/index.html.
+# This surfaces the real error in the build logs rather than letting a
+# broken image reach the nginx stage and serve a fallback error page.
+RUN ls -la /app/dist && test -f /app/dist/index.html
+
 FROM nginx:alpine
 
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Verify the Vite build produced output. If index.html is missing (e.g. the
-# build failed silently), write a minimal fallback so nginx serves a readable
-# page instead of a 502. The fallback makes the problem immediately visible
-# in the browser rather than hiding it behind a generic gateway error.
-RUN test -f /usr/share/nginx/html/index.html || \
-    mkdir -p /usr/share/nginx/html && \
-    echo '<html><body><h1>Build Failed</h1><p>Vite build did not produce output.</p></body></html>' > /usr/share/nginx/html/index.html
+# Confirm the copy from the build stage succeeded.
+RUN ls -la /usr/share/nginx/html && test -f /usr/share/nginx/html/index.html
 
 EXPOSE 8080
 
