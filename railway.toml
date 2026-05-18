@@ -1,28 +1,18 @@
 [railway]
-  plugin = "nixpacks"
+volume = "/data"
 
 [build]
-  builder = "nixpacks"
-  nixpacksVersion = "1.36.0"
+builder = "NIXPACKS"
 
-# Backend service
 [[services]]
-  name = "backend"
-  dockerfile = "backend/Dockerfile"
-  port = 5000
-  healthcheckPath = "/"
-  healthcheckTimeout = 30
-  envVars = []
+name = "backend"
+dockerfile = "Dockerfile"
+port = 5000
+healthcheck = "/"
+envGenerationMode = "lookup"
 
-# Frontend service  
 [[services]]
-  name = "frontend"
-  dockerfile = "frontend/Dockerfile"
-  port = 80
-  envVars = []
-
-# Nixpacks configuration for backend
-[nixpacks]
-  [[nixpacks.build.params]]
-    name = "BACKEND_PORT"
-    value = "5000"
+name = "frontend"
+dockerfile = "Dockerfile"
+port = 3000
+healthcheck = "/"
