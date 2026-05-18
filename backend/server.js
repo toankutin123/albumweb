@@ -13,6 +13,19 @@ const depositRoutes = require('./routes/deposit');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Request logging middleware — logs every inbound request
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(
+      `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} → ${res.statusCode} (${duration}ms)` +
+      (req.user ? ` | user=${req.user.id}` : '')
+    );
+  });
+  next();
+});
+
 // Dynamic CORS configuration for Railway
 const corsOptions = {
   origin: function (origin, callback) {
@@ -55,6 +68,22 @@ app.get('/api/health', (req, res) => {
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'AlbumWeb API đang chạy!' });
+});
+
+// Global error handler — catches any error passed via next(err)
+// eslint-disable-next-line no-unused-vars
+app.use((err, req, res, next) => {
+  console.error('=== UNHANDLED ERROR ===');
+  console.error(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  console.error('Request body:', JSON.stringify(req.body, null, 2));
+  console.error('Request params:', JSON.stringify(req.params, null, 2));
+  console.error('Request query:', JSON.stringify(req.query, null, 2));
+  console.error('Error message:', err.message);
+  console.error('Error stack:', err.stack);
+  res.status(err.status || 500).json({
+    message: err.message || 'Lỗi server',
+    ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
+  });
 });
 
 // Sync database và start server

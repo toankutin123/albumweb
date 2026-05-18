@@ -51,7 +51,11 @@ exports.createAlbum = async (req, res) => {
       album
     });
   } catch (error) {
-    console.error('CreateAlbum error:', error);
+    console.error('=== CreateAlbum error ===');
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -78,7 +82,10 @@ exports.getAllAlbums = async (req, res) => {
 
     res.json({ albums });
   } catch (error) {
-    console.error('GetAllAlbums error:', error);
+    console.error('=== GetAllAlbums error ===');
+    console.error('Request query:', JSON.stringify(req.query, null, 2));
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -104,7 +111,10 @@ exports.getAlbumById = async (req, res) => {
 
     res.json({ album });
   } catch (error) {
-    console.error('GetAlbumById error:', error);
+    console.error('=== GetAlbumById error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -135,7 +145,12 @@ exports.updateAlbum = async (req, res) => {
 
     res.json({ message: 'Cập nhật album thành công', album });
   } catch (error) {
-    console.error('UpdateAlbum error:', error);
+    console.error('=== UpdateAlbum error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -166,7 +181,11 @@ exports.deleteAlbum = async (req, res) => {
 
     res.json({ message: 'Xóa album thành công' });
   } catch (error) {
-    console.error('DeleteAlbum error:', error);
+    console.error('=== DeleteAlbum error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -219,7 +238,12 @@ exports.addImagesToAlbum = async (req, res) => {
       images: addedImages
     });
   } catch (error) {
-    console.error('AddImagesToAlbum error:', error);
+    console.error('=== AddImagesToAlbum error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -251,7 +275,11 @@ exports.removeImageFromAlbum = async (req, res) => {
 
     res.json({ message: 'Đã xóa ảnh khỏi album' });
   } catch (error) {
-    console.error('RemoveImageFromAlbum error:', error);
+    console.error('=== RemoveImageFromAlbum error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -271,7 +299,10 @@ exports.getMyAlbums = async (req, res) => {
 
     res.json({ albums });
   } catch (error) {
-    console.error('GetMyAlbums error:', error);
+    console.error('=== GetMyAlbums error ===');
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -332,7 +363,11 @@ exports.purchaseAlbum = async (req, res) => {
       newBalance: user.balance
     });
   } catch (error) {
-    console.error('PurchaseAlbum error:', error);
+    console.error('=== PurchaseAlbum error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -352,7 +387,11 @@ exports.checkPurchased = async (req, res) => {
 
     res.json({ purchased: !!purchase });
   } catch (error) {
-    console.error('CheckPurchased error:', error);
+    console.error('=== CheckPurchased error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };

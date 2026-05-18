@@ -29,7 +29,11 @@ exports.addFavorite = async (req, res) => {
       favorite
     });
   } catch (error) {
-    console.error('AddFavorite error:', error);
+    console.error('=== AddFavorite error ===');
+    console.error('Request body:', JSON.stringify(req.body, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -51,7 +55,11 @@ exports.removeFavorite = async (req, res) => {
 
     res.json({ message: 'Đã xóa khỏi yêu thích' });
   } catch (error) {
-    console.error('RemoveFavorite error:', error);
+    console.error('=== RemoveFavorite error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -80,7 +88,10 @@ exports.getFavorites = async (req, res) => {
 
     res.json({ favorites: albums });
   } catch (error) {
-    console.error('GetFavorites error:', error);
+    console.error('=== GetFavorites error ===');
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
@@ -96,7 +107,11 @@ exports.checkFavorite = async (req, res) => {
 
     res.json({ is_favorite: !!favorite });
   } catch (error) {
-    console.error('CheckFavorite error:', error);
+    console.error('=== CheckFavorite error ===');
+    console.error('Request params:', JSON.stringify(req.params, null, 2));
+    console.error('User:', req.user?.id);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Lỗi server' });
   }
 };

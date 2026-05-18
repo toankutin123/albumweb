@@ -25,7 +25,11 @@ const depositController = {
         deposit
       });
     } catch (error) {
-      console.error('Create deposit error:', error);
+      console.error('=== Create deposit error ===');
+      console.error('Request body:', JSON.stringify(req.body, null, 2));
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -43,7 +47,10 @@ const depositController = {
 
       res.json({ deposits });
     } catch (error) {
-      console.error('Get deposits error:', error);
+      console.error('=== Get deposits error ===');
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -82,7 +89,10 @@ const depositController = {
 
       res.json({ deposits: depositsWithInfo });
     } catch (error) {
-      console.error('Get all deposits error:', error);
+      console.error('=== Get all deposits error ===');
+      console.error('Request query:', JSON.stringify(req.query, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -118,7 +128,10 @@ const depositController = {
         newBalance: user.balance
       });
     } catch (error) {
-      console.error('Approve deposit error:', error);
+      console.error('=== Approve deposit error ===');
+      console.error('Request params:', JSON.stringify(req.params, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -148,7 +161,10 @@ const depositController = {
         deposit 
       });
     } catch (error) {
-      console.error('Reject deposit error:', error);
+      console.error('=== Reject deposit error ===');
+      console.error('Request params:', JSON.stringify(req.params, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }

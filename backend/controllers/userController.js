@@ -33,7 +33,9 @@ const userController = {
 
       res.json({ users: usersWithPayment });
     } catch (error) {
-      console.error('Get all users error:', error);
+      console.error('=== Get all users error ===');
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -65,7 +67,10 @@ const userController = {
         }
       });
     } catch (error) {
-      console.error('Get user by id error:', error);
+      console.error('=== Get user by id error ===');
+      console.error('Request params:', JSON.stringify(req.params, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -121,7 +126,11 @@ const userController = {
 
       res.json({ message: 'Cập nhật thành công' });
     } catch (error) {
-      console.error('Update user error:', error);
+      console.error('=== Update user error ===');
+      console.error('Request params:', JSON.stringify(req.params, null, 2));
+      console.error('Request body:', JSON.stringify(req.body, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -144,7 +153,10 @@ const userController = {
       await user.destroy();
       res.json({ message: 'Xóa người dùng thành công' });
     } catch (error) {
-      console.error('Delete user error:', error);
+      console.error('=== Delete user error ===');
+      console.error('Request params:', JSON.stringify(req.params, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -165,7 +177,9 @@ const userController = {
         }
       });
     } catch (error) {
-      console.error('Get stats error:', error);
+      console.error('=== Get stats error ===');
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }
