@@ -6,13 +6,15 @@ builder = "NIXPACKS"
 
 [[services]]
 name = "backend"
-dockerfile = "Dockerfile"
+dockerfile = "backend/Dockerfile"
+watch_patterns = ["backend/**"]
 port = 5000
 healthcheck = "/"
 envGenerationMode = "lookup"
 
 [[services]]
 name = "frontend"
-dockerfile = "Dockerfile"
+dockerfile = "frontend/Dockerfile"
+watch_patterns = ["frontend/**"]
 port = 3000
 healthcheck = "/"
