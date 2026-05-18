@@ -54,20 +54,35 @@ app.get('/', (req, res) => {
 
 // Sync database và start server
 const startServer = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('Kết nối database thành công!');
+  const MAX_RETRIES = 30;
+  const RETRY_DELAY_MS = 2000;
 
-    // Sync models (tự động tạo bảng nếu chưa có)
-    await sequelize.sync({ alter: true });
-    console.log('Đã đồng bộ models!');
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      console.log(`Đang kết nối database... (lần thử ${attempt}/${MAX_RETRIES})`);
+      await sequelize.authenticate();
+      console.log('Kết nối database thành công!');
 
-    app.listen(PORT, () => {
-      console.log(`Server đang chạy tại http://localhost:${PORT}`);
-    });
-  } catch (error) {
-    console.error('Không thể kết nối database:', error);
-    process.exit(1);
+      // Sync models (tự động tạo bảng nếu chưa có)
+      await sequelize.sync({ alter: true });
+      console.log('Đã đồng bộ models!');
+
+      app.listen(PORT, () => {
+        console.log(`Server đang chạy tại http://localhost:${PORT}`);
+      });
+
+      return;
+    } catch (error) {
+      console.error(`Không thể kết nối database (lần thử ${attempt}/${MAX_RETRIES}):`, error.message);
+
+      if (attempt === MAX_RETRIES) {
+        console.error('Đã hết số lần thử. Dừng server.');
+        process.exit(1);
+      }
+
+      console.log(`Thử lại sau ${RETRY_DELAY_MS / 1000} giây...`);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+    }
   }
 };
 
