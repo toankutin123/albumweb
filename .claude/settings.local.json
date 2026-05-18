@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(railway *)",
-      "Bash(npm *)",
-      "Bash(git rev-list *)"
-    ]
-  }
-}
