@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Environment files (keep .env.example)
+.env
+.env.local
+.env.production
+*.env
+
+# Build outputs
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# PostgreSQL data (if local)
+postgres_data/
+
+# npm/yarn
+package-lock.json
+yarn.lock
+
+# Secrets (never commit these)
+*.pem
+*.key
+credentials.json
