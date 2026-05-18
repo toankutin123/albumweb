@@ -21,6 +21,6 @@ RUN test -f /usr/share/nginx/html/index.html || \
     mkdir -p /usr/share/nginx/html && \
     echo '<html><body><h1>Build Failed</h1><p>Vite build did not produce output.</p></body></html>' > /usr/share/nginx/html/index.html
 
-EXPOSE 3000
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]
