@@ -1,4 +1,4 @@
-FROM node:20-alpine as build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -17,10 +17,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # build failed silently), write a minimal fallback so nginx serves a readable
 # page instead of a 502. The fallback makes the problem immediately visible
 # in the browser rather than hiding it behind a generic gateway error.
-RUN if [ ! -f /usr/share/nginx/html/index.html ]; then \
-      echo "WARNING: Vite build output not found — writing fallback index.html"; \
-      mkdir -p /usr/share/nginx/html && \
-      cat > /usr/share/nginx/html/index.html <<'EOF'
+RUN test -f /usr/share/nginx/html/index.html || \
+    (mkdir -p /usr/share/nginx/html && cat > /usr/share/nginx/html/index.html << 'EOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -48,9 +46,7 @@ RUN if [ ! -f /usr/share/nginx/html/index.html ]; then \
 </body>
 </html>
 EOF
-    else \
-      echo "Vite build output verified — index.html present"; \
-    fi
+)
 
 EXPOSE 3000
 
