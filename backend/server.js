@@ -47,7 +47,12 @@ app.use('/api/albums', albumRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/deposit', depositRoutes);
 
-// Test route
+// Health check — reachable via nginx proxy at /api/health
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', service: 'albumweb-backend', timestamp: new Date().toISOString() });
+});
+
+// Root route
 app.get('/', (req, res) => {
   res.json({ message: 'AlbumWeb API đang chạy!' });
 });
