@@ -67,8 +67,8 @@ const startServer = async () => {
       await sequelize.sync({ alter: true });
       console.log('Đã đồng bộ models!');
 
-      app.listen(PORT, () => {
-        console.log(`Server đang chạy tại http://localhost:${PORT}`);
+      app.listen(PORT, "0.0.0.0", () => {
+        console.log(`Server đang chạy tại http://0.0.0.0:${PORT}`);
       });
 
       return;
