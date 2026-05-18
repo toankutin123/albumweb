@@ -18,35 +18,8 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # page instead of a 502. The fallback makes the problem immediately visible
 # in the browser rather than hiding it behind a generic gateway error.
 RUN test -f /usr/share/nginx/html/index.html || \
-    (mkdir -p /usr/share/nginx/html && cat > /usr/share/nginx/html/index.html << 'EOF'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Build Error</title>
-  <style>
-    body { font-family: sans-serif; display: flex; align-items: center;
-           justify-content: center; min-height: 100vh; margin: 0;
-           background: #0f172a; color: #f1f5f9; }
-    .card { text-align: center; padding: 2rem; border: 1px solid #334155;
-            border-radius: 0.75rem; max-width: 480px; }
-    h1 { color: #f97316; margin-bottom: 0.5rem; }
-    p  { color: #94a3b8; line-height: 1.6; }
-    code { background: #1e293b; padding: 0.2em 0.4em; border-radius: 0.25rem;
-           font-size: 0.9em; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>&#9888; Build Incomplete</h1>
-    <p>The Vite build did not produce output files.<br/>
-       Check the Docker build logs for errors in the <code>npm run build</code> step.</p>
-  </div>
-</body>
-</html>
-EOF
-)
+    mkdir -p /usr/share/nginx/html && \
+    echo '<html><body><h1>Build Failed</h1><p>Vite build did not produce output.</p></body></html>' > /usr/share/nginx/html/index.html
 
 EXPOSE 3000
 
