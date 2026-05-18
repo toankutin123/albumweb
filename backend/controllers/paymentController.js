@@ -14,7 +14,10 @@ const paymentController = {
 
       res.json({ paymentInfo });
     } catch (error) {
-      console.error('Get payment info error:', error);
+      console.error('=== Get payment info error ===');
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -54,7 +57,11 @@ const paymentController = {
         paymentInfo
       });
     } catch (error) {
-      console.error('Save payment info error:', error);
+      console.error('=== Save payment info error ===');
+      console.error('Request body:', JSON.stringify(req.body, null, 2));
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }

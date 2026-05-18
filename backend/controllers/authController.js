@@ -53,7 +53,10 @@ const authController = {
         }
       });
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('=== Register error ===');
+      console.error('Request body:', JSON.stringify({ username: req.body?.username }, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server khi đăng ký' });
     }
   },
@@ -94,7 +97,10 @@ const authController = {
         }
       });
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('=== Login error ===');
+      console.error('Request body:', JSON.stringify({ username: req.body?.username }, null, 2));
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server khi đăng nhập' });
     }
   },
@@ -123,7 +129,10 @@ const authController = {
         }
       });
     } catch (error) {
-      console.error('GetMe error:', error);
+      console.error('=== GetMe error ===');
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   },
@@ -141,7 +150,10 @@ const authController = {
 
       res.json({ balance: user.balance });
     } catch (error) {
-      console.error('GetBalance error:', error);
+      console.error('=== GetBalance error ===');
+      console.error('User:', req.user?.id);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       res.status(500).json({ message: 'Lỗi server' });
     }
   }
