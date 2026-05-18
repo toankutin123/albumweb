@@ -19,30 +19,34 @@ const getDatabaseConfig = () => {
 
 const dbConfig = getDatabaseConfig();
 
-const sequelize = new Sequelize(
-  dbConfig.url ? dbConfig.url : dbConfig.database,
-  dbConfig.url ? undefined : dbConfig.username,
-  dbConfig.url ? undefined : dbConfig.password,
-  {
-    host: dbConfig.url ? undefined : dbConfig.host,
-    port: dbConfig.url ? undefined : dbConfig.port,
-    dialect: 'postgres',
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
-    dialectOptions: dbConfig.url ? {
-      ssl: process.env.NODE_ENV === 'production' ? {
-        rejectUnauthorized: false
-      } : false
-    } : {},
-    define: {
-      underscored: true
-    },
-    pool: {
-      max: 5,
-      min: 0,
-      acquire: 30000,
-      idle: 10000
-    }
+const sharedOptions = {
+  dialect: 'postgres',
+  logging: process.env.NODE_ENV === 'development' ? console.log : false,
+  define: {
+    underscored: true
+  },
+  pool: {
+    max: 5,
+    min: 0,
+    acquire: 30000,
+    idle: 10000
   }
-);
+};
+
+const sequelize = dbConfig.url
+  ? new Sequelize(dbConfig.url, {
+      ...sharedOptions,
+      dialectOptions: {
+        ssl: process.env.NODE_ENV === 'production' ? {
+          rejectUnauthorized: false
+        } : false
+      }
+    })
+  : new Sequelize(dbConfig.database, dbConfig.username, dbConfig.password, {
+      ...sharedOptions,
+      host: dbConfig.host,
+      port: dbConfig.port,
+      dialectOptions: {}
+    });
 
 module.exports = sequelize;
