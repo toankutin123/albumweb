@@ -276,6 +276,25 @@ export default function Layout() {
                   <span>{label}</span>
                 </Link>
               ))}
+              {/* User header - mobile */}
+              {user && (
+                <div className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-dark-700/50 mt-2">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-neon-pink to-neon-purple flex items-center justify-center">
+                    <span className="text-white font-medium">
+                      {user.username?.[0]?.toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-medium">{user.username}</p>
+                    <p className="text-gray-400 text-xs">{user.isPremium ? 'VIP Member' : 'Thành viên'}</p>
+                  </div>
+                  {user.isPremium && (
+                    <div className="px-2 py-1 rounded-full premium-badge">
+                      <Crown size={14} />
+                    </div>
+                  )}
+                </div>
+              )}
               {user && user.role === 'admin' && (
                 <>
                   <div className="flex items-center space-x-3 px-4 py-2 text-gray-400 text-sm uppercase tracking-wider">
