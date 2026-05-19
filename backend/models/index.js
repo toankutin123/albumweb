@@ -229,6 +229,42 @@ const Payment = sequelize.define('Payment', {
   updatedAt: 'updated_at'
 });
 
+// Define Withdrawal model (rút tiền)
+const Withdrawal = sequelize.define('Withdrawal', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  amount: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  status: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected', 'failed'),
+    defaultValue: 'pending'
+  },
+  failure_reason: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    defaultValue: null
+  }
+}, {
+  tableName: 'withdrawals',
+  underscored: true,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
+});
+
 // Define Favorite model
 const Favorite = sequelize.define('Favorite', {
   id: {
@@ -261,6 +297,9 @@ const Favorite = sequelize.define('Favorite', {
 // Define associations
 User.hasMany(PaymentInfo, { foreignKey: 'user_id', as: 'paymentInfo' });
 PaymentInfo.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
+User.hasMany(Withdrawal, { foreignKey: 'user_id', as: 'withdrawals' });
+Withdrawal.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 
 User.hasMany(Payment, { foreignKey: 'user_id', as: 'payments' });
 Payment.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
@@ -322,6 +361,7 @@ module.exports = {
   User,
   PaymentInfo,
   Payment,
+  Withdrawal,
   Image,
   Album,
   AlbumImage,

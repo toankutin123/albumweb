@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { paymentService, depositService } from '../services/apiService'
+import { paymentService, depositService, withdrawalService } from '../services/apiService'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { useAuth } from '../context/AuthContext'
-import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, Loader2 } from 'lucide-react'
+import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, ArrowUpToLine, Loader2, Clock } from 'lucide-react'
 
 export default function Payment() {
   const { user } = useAuth()
@@ -15,7 +15,12 @@ export default function Payment() {
   const [withdrawing, setWithdrawing] = useState(false)
   const [showWithdrawForm, setShowWithdrawForm] = useState(false)
   const [deposits, setDeposits] = useState([])
+  const [withdrawals, setWithdrawals] = useState([])
   const [showDepositForm, setShowDepositForm] = useState(false)
+  const [withdrawCountdown, setWithdrawCountdown] = useState(0)
+  const [withdrawError, setWithdrawError] = useState(null)
+  const [withdrawSuccess, setWithdrawSuccess] = useState(false)
+  const [pendingWithdrawalId, setPendingWithdrawalId] = useState(null)
   
   const [bankForm, setBankForm] = useState({
     bank_name: '',
@@ -36,6 +41,31 @@ export default function Payment() {
     loadData()
   }, [])
 
+  // Poll withdrawals to check for status changes
+  useEffect(() => {
+    if (pendingWithdrawalId) {
+      const interval = setInterval(async () => {
+        try {
+          const res = await withdrawalService.getMy()
+          const updated = res.data.withdrawals.find(w => w.id === pendingWithdrawalId)
+          if (updated && updated.status !== 'pending') {
+            setPendingWithdrawalId(null)
+            setWithdrawCountdown(0)
+            if (updated.status === 'failed') {
+              setWithdrawError(updated.failure_reason || 'Tài khoản ngân hàng không chính xác')
+            } else if (updated.status === 'approved') {
+              setWithdrawSuccess(true)
+            }
+            setWithdrawals(res.data.withdrawals)
+          }
+        } catch (err) {
+          console.error('Poll withdrawal error:', err)
+        }
+      }, 2000) // Poll every 2 seconds
+      return () => clearInterval(interval)
+    }
+  }, [pendingWithdrawalId])
+
   const loadData = async () => {
     try {
       setLoading(true)
@@ -45,6 +75,21 @@ export default function Payment() {
       if (res.data.paymentInfo) {
         const depositRes = await depositService.getMy()
         setDeposits(depositRes.data.deposits || [])
+        
+        const withdrawalRes = await withdrawalService.getMy()
+        setWithdrawals(withdrawalRes.data.withdrawals || [])
+        
+        // Check if there's a pending withdrawal
+        const pending = withdrawalRes.data.withdrawals?.find(w => w.status === 'pending')
+        if (pending) {
+          setPendingWithdrawalId(pending.id)
+          // Calculate remaining time
+          const created = new Date(pending.created_at).getTime()
+          const now = Date.now()
+          const elapsed = Math.floor((now - created) / 1000)
+          const remaining = Math.max(0, 30 - elapsed)
+          setWithdrawCountdown(remaining)
+        }
       }
     } catch (error) {
       console.error('Lỗi tải dữ liệu:', error)
@@ -91,14 +136,43 @@ export default function Payment() {
     }
 
     setWithdrawing(true)
+    setWithdrawError(null)
+    setWithdrawSuccess(false)
 
-    // Simulate 10 second processing
-    await new Promise(resolve => setTimeout(resolve, 10000))
-
-    setWithdrawing(false)
-    toast.error('Rút tiền thất bại! Vui lòng kiểm tra lại số tài khoản và tên ngân hàng.')
-    setShowWithdrawForm(false)
-    setWithdrawForm({ amount: '' })
+    try {
+      const res = await withdrawalService.create({
+        amount: parseInt(withdrawForm.amount)
+      })
+      
+      // Start countdown
+      setWithdrawCountdown(30)
+      setPendingWithdrawalId(res.data.withdrawal.id)
+      
+      // Countdown timer
+      const timer = setInterval(() => {
+        setWithdrawCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+      
+      toast.success('Yêu cầu rút tiền đang được xử lý...')
+      setShowWithdrawForm(false)
+      setWithdrawForm({ amount: '' })
+      
+    } catch (error) {
+      setWithdrawing(false)
+      if (error.response?.data?.needBankInfo) {
+        toast.error('Bạn cần cập nhật thông tin ngân hàng trước')
+      } else {
+        toast.error(error.response?.data?.message || 'Rút tiền thất bại')
+      }
+    } finally {
+      // Don't set withdrawing to false here - we wait for the 30s auto-fail
+    }
   }
 
   const handleSaveBank = async (e) => {
@@ -181,6 +255,37 @@ export default function Payment() {
 
   const formatCurrency = (amount) => {
     return amount?.toLocaleString('vi-VN') + 'đ'
+  }
+
+  const getWithdrawStatusBadge = (status) => {
+    const styles = {
+      pending: 'bg-yellow-500/20 text-yellow-400',
+      approved: 'bg-green-500/20 text-green-400',
+      rejected: 'bg-red-500/20 text-red-400',
+      failed: 'bg-red-500/20 text-red-400'
+    }
+    const labels = {
+      pending: 'Đang chờ',
+      approved: 'Đã duyệt',
+      rejected: 'Từ chối',
+      failed: 'Thất bại'
+    }
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`}>
+        {labels[status]}
+      </span>
+    )
+  }
+
+  const getWithdrawFailureReason = (withdrawal) => {
+    if (withdrawal.status === 'failed' && withdrawal.failure_reason) {
+      return (
+        <p className="text-sm text-red-400 mt-1">
+          Lý do: {withdrawal.failure_reason}
+        </p>
+      )
+    }
+    return null
   }
 
   const getStatusBadge = (status) => {
@@ -357,13 +462,27 @@ export default function Payment() {
             </div>
           </div>
 
-          {withdrawing ? (
+          {withdrawCountdown > 0 ? (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <div className="relative">
-                <Loader2 size={48} className="text-red-500 animate-spin" />
+                <Clock size={48} className="text-red-500 animate-pulse" />
               </div>
               <p className="text-white font-medium">Đang xử lý rút tiền...</p>
+              <div className="flex items-center space-x-2">
+                <Loader2 size={20} className="text-red-500 animate-spin" />
+                <span className="text-2xl font-bold text-red-400">{withdrawCountdown}s</span>
+              </div>
               <p className="text-sm text-gray-400">Vui lòng chờ trong giây lát</p>
+              {withdrawError && (
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <p className="text-red-400 text-center">{withdrawError}</p>
+                </div>
+              )}
+              {withdrawSuccess && (
+                <div className="mt-4 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
+                  <p className="text-green-400 text-center">Rút tiền thành công!</p>
+                </div>
+              )}
             </div>
           ) : !showWithdrawForm ? (
             <Button 
@@ -441,10 +560,10 @@ export default function Payment() {
       {deposits.length > 0 && (
         <div className="mt-8 bg-dark-800 rounded-2xl p-6 neon-border">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="w-10 h-10 rounded-lg bg-dark-700 flex items-center justify-center">
-              <History className="text-gray-400" size={20} />
+            <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+              <ArrowUpToLine className="text-green-400" size={20} />
             </div>
-            <h2 className="text-xl font-bold text-white">Lịch Sử Nạp Tiền</h2>
+            <h2 className="text-xl font-bold text-white">Lịch Sử Nap Tiền</h2>
           </div>
 
           <div className="space-y-4">
@@ -465,6 +584,37 @@ export default function Payment() {
                     )}
                   </div>
                   {getStatusBadge(deposit.status)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lịch Sử Rút Tiền */}
+      {withdrawals.length > 0 && (
+        <div className="mt-8 bg-dark-800 rounded-2xl p-6 neon-border">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+              <ArrowDownToLine className="text-red-400" size={20} />
+            </div>
+            <h2 className="text-xl font-bold text-white">Lịch Sử Rút Tiền</h2>
+          </div>
+
+          <div className="space-y-4">
+            {withdrawals.map(withdrawal => (
+              <div key={withdrawal.id} className="p-4 bg-dark-700 rounded-xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white font-medium">
+                      {formatCurrency(withdrawal.amount)}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {formatDate(withdrawal.created_at)}
+                    </p>
+                    {getWithdrawFailureReason(withdrawal)}
+                  </div>
+                  {getWithdrawStatusBadge(withdrawal.status)}
                 </div>
               </div>
             ))}

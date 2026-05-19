@@ -45,3 +45,11 @@ export const depositService = {
   approve: (id) => api.post(`/deposit/${id}/approve`),
   reject: (id) => api.post(`/deposit/${id}/reject`)
 }
+
+export const withdrawalService = {
+  create: (data) => api.post('/withdrawal', data),
+  getMy: () => api.get('/withdrawal'),
+  getAllAdmin: () => api.get('/withdrawal/admin/all'),
+  approve: (id) => api.post(`/withdrawal/${id}/approve`),
+  reject: (id, reason) => api.post(`/withdrawal/${id}/reject`, { reason })
+}

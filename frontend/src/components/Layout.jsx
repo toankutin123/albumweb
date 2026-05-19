@@ -53,14 +53,26 @@ export default function Layout() {
       <nav className="fixed top-0 left-0 right-0 z-50 glass-effect">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-neon-pink to-neon-purple flex items-center justify-center">
-                <span className="text-white font-bold text-lg">G</span>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
-                Album
-              </span>
-            </Link>
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="flex items-center space-x-2">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-neon-pink to-neon-purple flex items-center justify-center">
+                  <span className="text-white font-bold text-lg">G</span>
+                </div>
+                <span className="text-xl font-bold bg-gradient-to-r from-neon-pink to-neon-purple bg-clip-text text-transparent">
+                  Album
+                </span>
+              </Link>
+
+              {/* Số dư - hiện trên cả mobile và desktop */}
+              {user && user.balance !== undefined && (
+                <div className="md:hidden flex items-center space-x-1 px-2 py-1 rounded-lg bg-green-900/50 border border-green-700">
+                  <Wallet size={14} className="text-green-400" />
+                  <span className="text-green-400 font-medium text-sm">
+                    {parseFloat(user.balance).toLocaleString('vi-VN')}đ
+                  </span>
+                </div>
+              )}
+            </div>
 
             <div className="hidden md:flex items-center space-x-6">
               {navLinks.map(({ path, label, icon: Icon }) => (
