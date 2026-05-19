@@ -6,7 +6,7 @@
 
 set -e
 
-: "${BACKEND_HOST:=albumweb-backend.railway.internal}"
+: "${BACKEND_HOST:=backend.railway.internal}"
 
 echo "[entrypoint] Using backend host: ${BACKEND_HOST}"
 
