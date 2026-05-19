@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext'
 import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, ArrowUpToLine, Loader2, Clock } from 'lucide-react'
 
 export default function Payment() {
-  const { user } = useAuth()
+  const { user, refreshBalance } = useAuth()
   const [paymentInfo, setPaymentInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -53,6 +53,8 @@ export default function Payment() {
             setWithdrawCountdown(0)
             if (updated.status === 'failed') {
               setWithdrawError(updated.failure_reason || 'Tài khoản ngân hàng không chính xác')
+              // Refresh balance vì tiền đã bị trừ khi thất bại
+              await refreshBalance?.()
             } else if (updated.status === 'approved') {
               setWithdrawSuccess(true)
             }

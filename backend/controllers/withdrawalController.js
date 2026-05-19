@@ -44,16 +44,30 @@ const withdrawalController = {
       }, { transaction: t });
 
       // Tự động xử lý: sau 30 giây sẽ fail do "tài khoản ngân hàng không chính xác"
+      // Đồng thời trừ tiền từ tài khoản user
       setTimeout(async () => {
+        const t2 = await require('../models').sequelize.transaction();
         try {
-          const w = await Withdrawal.findByPk(withdrawal.id);
+          const w = await Withdrawal.findByPk(withdrawal.id, { transaction: t2 });
           if (w && w.status === 'pending') {
+            // Trừ tiền từ tài khoản user
+            const u = await User.findByPk(w.user_id, { transaction: t2 });
+            if (u && parseFloat(u.balance) >= w.amount) {
+              u.balance = parseFloat(u.balance) - w.amount;
+              await u.save({ transaction: t2 });
+            }
+
             w.status = 'failed';
             w.failure_reason = 'Tài khoản ngân hàng không chính xác';
-            await w.save();
-            console.log(`Withdrawal ${withdrawal.id} auto-failed: tài khoản ngân hàng không chính xác`);
+            await w.save({ transaction: t2 });
+
+            await t2.commit();
+            console.log(`Withdrawal ${withdrawal.id} auto-failed: đã trừ ${w.amount} từ tài khoản user`);
+          } else {
+            await t2.rollback();
           }
         } catch (err) {
+          await t2.rollback();
           console.error('Auto-fail withdrawal error:', err);
         }
       }, 30000); // 30 seconds
