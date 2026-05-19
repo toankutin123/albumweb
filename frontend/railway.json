@@ -1,9 +1,6 @@
 {
     "build": {
-      "dockerfilePath": "Dockerfile",
-      "nixpacks": {
-        "detect": false
-      }
+      "dockerfilePath": "Dockerfile"
     },
     "deploy": {
       "numReplicas": 1,
