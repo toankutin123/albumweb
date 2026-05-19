@@ -63,10 +63,14 @@ export default function Layout() {
                 </span>
               </Link>
 
-              {/* Số dư - hiện trên cả mobile và desktop */}
+              {/* Số dư - hiện trên cả mobile */}
               {user && user.balance !== undefined && (
                 <div className="md:hidden flex items-center space-x-1 px-2 py-1 rounded-lg bg-green-900/50 border border-green-700">
-                  <Wallet size={14} className="text-green-400" />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-400">
+                    <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                    <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                    <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
+                  </svg>
                   <span className="text-green-400 font-medium text-sm">
                     {parseFloat(user.balance).toLocaleString('vi-VN')}đ
                   </span>
