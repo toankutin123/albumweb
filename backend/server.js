@@ -26,7 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Dynamic CORS configuration for Railway
+// Dynamic CORS configuration
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, etc.)
@@ -36,6 +36,11 @@ const corsOptions = {
     if (origin.endsWith('.up.railway.app') || 
         origin.endsWith('.railway.app') ||
         origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    // Allow Render domains (including subdomains)
+    if (origin.includes('onrender.com')) {
       return callback(null, true);
     }
     
