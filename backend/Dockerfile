@@ -7,7 +7,7 @@ RUN npm ci --only=production
 
 COPY . .
 
-RUN npm run build 2>/dev/null || true
+RUN npm run build
 
 EXPOSE 5000
 
