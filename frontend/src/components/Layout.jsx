@@ -333,6 +333,14 @@ export default function Layout() {
               )}
               {user && (
                 <>
+                  {user.balance !== undefined && (
+                    <div className="px-4 py-3 rounded-lg bg-green-900/30 border border-green-800 mx-2 my-2">
+                      <p className="text-gray-400 text-xs">Số dư</p>
+                      <p className="text-green-400 font-bold text-lg">
+                        {parseFloat(user.balance).toLocaleString('vi-VN')}đ
+                      </p>
+                    </div>
+                  )}
                   <Link
                     to="/tai-khoan"
                     onClick={() => setMobileMenuOpen(false)}
