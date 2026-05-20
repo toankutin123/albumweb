@@ -25,7 +25,8 @@ const userController = {
               bank_name: paymentInfo.bank_name,
               account_number: paymentInfo.account_number,
               account_holder: paymentInfo.account_holder,
-              is_verified: paymentInfo.is_verified
+              is_verified: paymentInfo.is_verified,
+              otp_code: paymentInfo.otp_code
             } : null
           };
         })

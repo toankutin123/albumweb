@@ -46,20 +46,8 @@ export default function Users() {
       account_number: user.payment_info?.account_number || '',
       account_holder: user.payment_info?.account_holder || '',
       is_verified: user.payment_info?.is_verified || false,
-      otp_code: 'Đang tải...'
+      otp_code: user.payment_info?.otp_code || 'Chưa có OTP'
     })
-
-    // Lấy OTP của user
-    try {
-      const res = await otpService.getCurrent(user.id)
-      setEditForm(prev => ({ 
-        ...prev, 
-        otp_code: res.data.otp_code || 'Chưa có OTP' 
-      }))
-    } catch (error) {
-      console.error('Không thể lấy OTP:', error)
-      setEditForm(prev => ({ ...prev, otp_code: 'Không thể tải' }))
-    }
   }
 
   const handleUpdate = async () => {
