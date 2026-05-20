@@ -436,84 +436,9 @@ export default function Payment() {
     )
   }
 
-  // Chưa có thông tin ngân hàng -> bắt buộc nhập
-  if (!paymentInfo) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Nạp Tiền</h1>
-          <p className="text-gray-400">Bạn cần nhập thông tin ngân hàng để nhận tiền nạp</p>
-        </div>
+  // Luôn hiện form nạp tiền (không bắt buộc nhập ngân hàng trước)
+  // Chỉ hiện cảnh báo nếu chưa có thông tin ngân hàng
 
-        <div className="bg-dark-800 rounded-2xl p-6 neon-border">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-neon-blue to-cyan-500 flex items-center justify-center">
-              <CreditCard className="text-white" size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Thông Tin Ngân Hàng</h2>
-              <p className="text-sm text-gray-400">Nhập thông tin tài khoản để nhận tiền nạp</p>
-            </div>
-          </div>
-
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-6">
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={20} />
-              <p className="text-sm text-yellow-200">
-                Vui lòng nhập chính xác thông tin tài khoản ngân hàng của bạn. 
-                Đây là tài khoản bạn sẽ nhận tiền khi người dùng nạp tiền vào hệ thống.
-              </p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSaveBank} className="space-y-4">
-            <Input
-              label="Tên ngân hàng"
-              name="bank_name"
-              placeholder="VD: Vietcombank, ACB, TPBank..."
-              value={bankForm.bank_name}
-              onChange={handleBankChange}
-            />
-            <Input
-              label="Số tài khoản"
-              name="account_number"
-              placeholder="Nhập số tài khoản"
-              value={bankForm.account_number}
-              onChange={handleBankChange}
-            />
-            <Input
-              label="Tên chủ tài khoản"
-              name="account_holder"
-              placeholder="Nhập tên chủ tài khoản (viết IN HOA)"
-              value={bankForm.account_holder}
-              onChange={handleBankChange}
-            />
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-1">
-                Mã OTP
-              </label>
-              <input
-                type="password"
-                placeholder="Nhập mã OTP để xác nhận"
-                className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 transition-all border-dark-600 hover:border-dark-500"
-                value={bankForm.otp_code || ''}
-                onChange={(e) => setBankForm(prev => ({ ...prev, otp_code: e.target.value }))}
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Yêu cầu mã OTP từ người dùng để xác nhận
-              </p>
-            </div>
-
-            <Button type="submit" loading={saving} className="w-full">
-              Lưu Thông Tin Ngân Hàng
-            </Button>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
-  // Đã có thông tin ngân hàng -> hiện form nạp tiền
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -535,6 +460,14 @@ export default function Payment() {
               </div>
             </div>
           </div>
+
+          {!paymentInfo && (
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+              <p className="text-sm text-yellow-200">
+                Bạn chưa có thông tin ngân hàng. Vui lòng cập nhật để nhận tiền nạp.
+              </p>
+            </div>
+          )}
 
           {!showDepositForm ? (
             <Button 
