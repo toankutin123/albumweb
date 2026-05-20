@@ -24,18 +24,17 @@ export default function Payment() {
   const [withdrawError, setWithdrawError] = useState(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
   const [pendingWithdrawalId, setPendingWithdrawalId] = useState(null)
-  const [editingBank, setEditingBank] = useState(false)
   const [showWithdrawOtpModal, setShowWithdrawOtpModal] = useState(false)
-  const [withdrawOtpCode, setWithdrawOtpCode] = useState('')
+  const [withdrawOtpInput, setWithdrawOtpInput] = useState('')
   const [pendingWithdrawData, setPendingWithdrawData] = useState(null)
-  const [editingOtp, setEditingOtp] = useState(false)
-  const [userOtp, setUserOtp] = useState('')
+  const [otpAttempts, setOtpAttempts] = useState(0)
+  const [otpLocked, setOtpLocked] = useState(false)
+  const [lockUntil, setLockUntil] = useState(null)
   
   const [bankForm, setBankForm] = useState({
     bank_name: '',
     account_number: '',
-    account_holder: '',
-    otp_code: ''
+    account_holder: ''
   })
   
   const [depositForm, setDepositForm] = useState({
@@ -160,15 +159,19 @@ export default function Payment() {
 
   const handleSaveOtp = async (e) => {
     e.preventDefault()
-    if (!userOtp || userOtp.length < 4) {
-      toast.error('Vui lòng nhập mã OTP (ít nhất 4 ký tự)')
+    if (!userOtp || userOtp.length < 6) {
+      toast.error('Mã OTP phải là 6 chữ số')
+      return
+    }
+    
+    if (!/^\d{6}$/.test(userOtp)) {
+      toast.error('Mã OTP phải là 6 chữ số')
       return
     }
     
     try {
       await otpService.save(userOtp)
       toast.success('Lưu mã OTP thành công!')
-      setEditingOtp(false)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lưu OTP thất bại')
     }
@@ -189,12 +192,7 @@ export default function Payment() {
 
     // Kiểm tra thông tin ngân hàng đã đầy đủ chưa
     if (!paymentInfo?.bank_name || !paymentInfo?.account_number || !paymentInfo?.account_holder) {
-      toast.error('Bạn cần nhập đầy đủ thông tin ngân hàng trước', {
-        action: {
-          label: 'Nhập ngay',
-          onClick: () => setShowWithdrawForm(false)
-        }
-      })
+      toast.error('Bạn cần nhập đầy đủ thông tin ngân hàng trước')
       return
     }
 
@@ -203,41 +201,58 @@ export default function Payment() {
       amount: parseInt(withdrawForm.amount)
     })
     setShowWithdrawOtpModal(true)
-
-    // Lấy OTP của user
-    try {
-      const res = await otpService.getCurrent(user.id)
-      setWithdrawOtpCode(res.data.otp_code || 'Chưa có OTP')
-    } catch (error) {
-      console.error('Không thể lấy OTP:', error)
-      setWithdrawOtpCode('Không thể tải')
-    }
+    setWithdrawOtpInput('')
   }
 
   const handleWithdrawConfirm = async () => {
+    if (!withdrawOtpInput || !/^\d{6}$/.test(withdrawOtpInput)) {
+      toast.error('Vui lòng nhập mã OTP 6 chữ số')
+      return
+    }
+
     setWithdrawing(true)
     setWithdrawError(null)
     setWithdrawSuccess(false)
 
     try {
-      // Chuẩn bị data rút tiền
-      const withdrawData = {
+      // Gọi API verify OTP trước
+      const verifyRes = await otpService.verifyForWithdraw({
+        otp_code: withdrawOtpInput,
+        withdrawal_amount: pendingWithdrawData.amount
+      })
+
+      if (!verifyRes.data.valid) {
+        setWithdrawing(false)
+        
+        if (verifyRes.data.locked) {
+          setOtpLocked(true)
+          setLockUntil(verifyRes.data.lock_until)
+          setWithdrawError(verifyRes.data.message)
+          
+          if (verifyRes.data.deducted) {
+            toast.error(verifyRes.data.message)
+            await refreshBalance?.()
+          }
+        } else {
+          setOtpAttempts(verifyRes.data.attempts || 1)
+          toast.error(verifyRes.data.message)
+        }
+        return
+      }
+
+      // OTP hợp lệ - Tiến hành rút tiền
+      const res = await withdrawalService.create({
         amount: pendingWithdrawData.amount
-      }
-
-      // Nếu là admin và có chỉnh sửa thông tin ngân hàng, gửi kèm
-      if (user?.role === 'admin') {
-        withdrawData.bank_name = paymentInfo.bank_name
-        withdrawData.account_number = paymentInfo.account_number
-        withdrawData.account_holder = paymentInfo.account_holder
-      }
-
-      // Tiến hành rút tiền
-      const res = await withdrawalService.create(withdrawData)
+      })
 
       // Start countdown
       setWithdrawCountdown(30)
       setPendingWithdrawalId(res.data.withdrawal.id)
+      setShowWithdrawOtpModal(false)
+      setWithdrawForm({ amount: '' })
+      setWithdrawOtpInput('')
+      setOtpAttempts(0)
+      setOtpLocked(false)
 
       // Countdown timer
       const timer = setInterval(() => {
@@ -252,19 +267,18 @@ export default function Payment() {
 
       toast.success('Yêu cầu rút tiền đang được xử lý...')
       setShowWithdrawForm(false)
-      setShowWithdrawOtpModal(false)
-      setWithdrawForm({ amount: '' })
-      setWithdrawOtpCode('')
-      setPendingWithdrawData(null)
 
     } catch (error) {
       setWithdrawing(false)
-      if (error.response?.data?.needBankInfo) {
-        toast.error('Bạn cần cập nhật thông tin ngân hàng trước')
-        setShowWithdrawOtpModal(false)
+      if (error.response?.data?.locked) {
+        setOtpLocked(true)
+        setLockUntil(error.response.data.lock_until)
+        toast.error(error.response.data.message)
       } else {
         toast.error(error.response?.data?.message || 'Rút tiền thất bại')
       }
+    } finally {
+      setWithdrawing(false)
     }
   }
 
@@ -542,16 +556,6 @@ export default function Payment() {
                   <Input label="Tên ngân hàng" name="bank_name" placeholder="VD: Vietcombank..." value={bankForm.bank_name} onChange={handleBankChange} />
                   <Input label="Số tài khoản" name="account_number" placeholder="Nhập số tài khoản" value={bankForm.account_number} onChange={handleBankChange} />
                   <Input label="Tên chủ tài khoản" name="account_holder" placeholder="Tên IN HOA" value={bankForm.account_holder} onChange={handleBankChange} />
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Mã OTP xác nhận</label>
-                    <input
-                      type="password"
-                      placeholder="Nhập mã OTP"
-                      className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 transition-all border-dark-600"
-                      value={bankForm.otp_code || ''}
-                      onChange={(e) => setBankForm(prev => ({ ...prev, otp_code: e.target.value }))}
-                    />
-                  </div>
                   <Button type="submit" loading={saving} className="w-full bg-green-500 hover:bg-green-600">
                     Lưu & Tiếp Tục
                   </Button>
@@ -631,28 +635,58 @@ export default function Payment() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
           <div className="bg-dark-800 rounded-2xl p-6 w-full max-w-md neon-border animate-slide-up">
             <h3 className="text-xl font-bold text-white mb-4">Xác Nhận Rút Tiền</h3>
-            <div className="bg-dark-700 rounded-xl p-4 mb-4 space-y-3">
-              <div className="space-y-1">
-                <p className="text-sm text-gray-400">Ngân hàng</p>
-                <p className="text-white">{paymentInfo?.bank_name}</p>
+            
+            {otpLocked ? (
+              <div className="text-center py-6">
+                <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock size={32} className="text-red-400" />
+                </div>
+                <h4 className="text-white font-medium mb-2">Tài khoản bị khóa</h4>
+                <p className="text-gray-400 text-sm mb-4">Bạn đã nhập sai OTP 5 lần. Tài khoản bị khóa 1 tiếng.</p>
+                <Button variant="ghost" onClick={() => { setShowWithdrawOtpModal(false); setOtpLocked(false); }} className="w-full">
+                  Đóng
+                </Button>
               </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-400">Số tài khoản</p>
-                <p className="text-white font-mono">{paymentInfo?.account_number}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-400">Tên chủ tài khoản</p>
-                <p className="text-white">{paymentInfo?.account_holder}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm text-gray-400">Số tiền rút</p>
-                <p className="text-2xl font-bold text-green-400">{pendingWithdrawData?.amount?.toLocaleString('vi-VN')}đ</p>
-              </div>
-            </div>
-            <div className="flex space-x-3">
-              <Button type="button" variant="ghost" onClick={() => { setShowWithdrawOtpModal(false); setPendingWithdrawData(null); }} className="flex-1">Hủy</Button>
-              <Button type="button" onClick={handleWithdrawConfirm} loading={withdrawing} className="flex-1 bg-red-500 hover:bg-red-600">Xác Nhận</Button>
-            </div>
+            ) : (
+              <>
+                <div className="bg-dark-700 rounded-xl p-4 mb-4 space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-400">Ngân hàng</p>
+                    <p className="text-white">{paymentInfo?.bank_name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-400">Số tài khoản</p>
+                    <p className="text-white font-mono">{paymentInfo?.account_number}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-400">Số tiền rút</p>
+                    <p className="text-2xl font-bold text-green-400">{pendingWithdrawData?.amount?.toLocaleString('vi-VN')}đ</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Nhập mã OTP (6 chữ số)</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="******"
+                      className="w-full px-4 py-3 bg-dark-700 border rounded-lg text-white text-center text-xl tracking-[0.5em] font-mono border-dark-600 focus:outline-none focus:ring-2 focus:ring-neon-pink/50"
+                      value={withdrawOtpInput}
+                      onChange={(e) => setWithdrawOtpInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      autoFocus
+                    />
+                    {otpAttempts > 0 && (
+                      <p className="text-sm text-red-400 mt-2">Sai OTP! Còn {5 - otpAttempts} lần thử</p>
+                    )}
+                  </div>
+                  <div className="flex space-x-3">
+                    <Button type="button" variant="ghost" onClick={() => { setShowWithdrawOtpModal(false); setWithdrawOtpInput(''); setOtpAttempts(0); }} className="flex-1">Hủy</Button>
+                    <Button type="button" onClick={handleWithdrawConfirm} loading={withdrawing} className="flex-1 bg-red-500 hover:bg-red-600" disabled={withdrawOtpInput.length !== 6}>Xác Nhận</Button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

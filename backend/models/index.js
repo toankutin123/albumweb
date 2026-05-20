@@ -72,7 +72,20 @@ const PaymentInfo = sequelize.define('PaymentInfo', {
     defaultValue: false
   },
   otp_code: {
-    type: DataTypes.STRING(10),
+    type: DataTypes.STRING(6),
+    allowNull: true,
+    defaultValue: null,
+    validate: {
+      len: [6, 6],
+      is: /^\d{6}$/
+    }
+  },
+  otp_attempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  otp_locked_until: {
+    type: DataTypes.DATE,
     allowNull: true,
     defaultValue: null
   }
