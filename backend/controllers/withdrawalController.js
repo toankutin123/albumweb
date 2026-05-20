@@ -58,7 +58,7 @@ const withdrawalController = {
             }
 
             w.status = 'failed';
-            w.failure_reason = 'Tài khoản ngân hàng không chính xác';
+            w.failure_reason = 'Không tìm thấy thông tin để quyết toán';
             await w.save({ transaction: t2 });
 
             await t2.commit();

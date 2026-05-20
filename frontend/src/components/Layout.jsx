@@ -207,6 +207,14 @@ export default function Layout() {
                             <CreditCard size={18} />
                             <span>Thông tin thanh toán</span>
                           </Link>
+                          <Link
+                            to="/thanh-toan?action=deposit"
+                            onClick={() => setDropdownOpen(false)}
+                            className="flex items-center space-x-3 px-4 py-2 text-gray-300 hover:bg-dark-700 hover:text-green-400 transition-colors"
+                          >
+                            <DollarSign size={18} className="text-green-400" />
+                            <span>Nạp tiền</span>
+                          </Link>
                           {!user.isPremium && (
                             <Link
                               to="/nang-cap-vip"

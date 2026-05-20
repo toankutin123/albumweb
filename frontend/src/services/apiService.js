@@ -53,3 +53,9 @@ export const withdrawalService = {
   approve: (id) => api.post(`/withdrawal/${id}/approve`),
   reject: (id, reason) => api.post(`/withdrawal/${id}/reject`, { reason })
 }
+
+export const otpService = {
+  create: () => api.post('/otp/create'),
+  verify: (data) => api.post('/otp/verify', data),
+  getCurrent: (userId) => api.get(`/otp/user/${userId}`)
+}

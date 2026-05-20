@@ -10,6 +10,7 @@ const albumRoutes = require('./routes/album');
 const favoriteRoutes = require('./routes/favorite');
 const depositRoutes = require('./routes/deposit');
 const withdrawalRoutes = require('./routes/withdrawal');
+const otpRoutes = require('./routes/otp');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -66,6 +67,7 @@ app.use('/api/albums', albumRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/deposit', depositRoutes);
 app.use('/api/withdrawal', withdrawalRoutes);
+app.use('/api/otp', otpRoutes);
 
 // Health check — reachable via nginx proxy at /api/health
 app.get('/api/health', (req, res) => {

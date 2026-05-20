@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { paymentService, depositService, withdrawalService } from '../services/apiService'
+import { paymentService, depositService, withdrawalService, otpService } from '../services/apiService'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { useAuth } from '../context/AuthContext'
-import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, ArrowUpToLine, Loader2, Clock } from 'lucide-react'
+import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, ArrowUpToLine, Loader2, Clock, Edit2 } from 'lucide-react'
 
 export default function Payment() {
   const { user, refreshBalance } = useAuth()
+  const [searchParams] = useSearchParams()
   const [paymentInfo, setPaymentInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -21,11 +23,16 @@ export default function Payment() {
   const [withdrawError, setWithdrawError] = useState(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState(false)
   const [pendingWithdrawalId, setPendingWithdrawalId] = useState(null)
+  const [editingBank, setEditingBank] = useState(false)
+  const [showWithdrawOtpModal, setShowWithdrawOtpModal] = useState(false)
+  const [withdrawOtpCode, setWithdrawOtpCode] = useState('')
+  const [pendingWithdrawData, setPendingWithdrawData] = useState(null)
   
   const [bankForm, setBankForm] = useState({
     bank_name: '',
     account_number: '',
-    account_holder: ''
+    account_holder: '',
+    otp_code: ''
   })
   
   const [depositForm, setDepositForm] = useState({
@@ -41,6 +48,14 @@ export default function Payment() {
     loadData()
   }, [])
 
+  // Mở form deposit nếu có query param ?action=deposit
+  useEffect(() => {
+    const action = searchParams.get('action')
+    if (action === 'deposit' && paymentInfo) {
+      setShowDepositForm(true)
+    }
+  }, [searchParams, paymentInfo])
+
   // Poll withdrawals to check for status changes
   useEffect(() => {
     if (pendingWithdrawalId) {
@@ -52,7 +67,7 @@ export default function Payment() {
             setPendingWithdrawalId(null)
             setWithdrawCountdown(0)
             if (updated.status === 'failed') {
-              setWithdrawError(updated.failure_reason || 'Tài khoản ngân hàng không chính xác')
+              setWithdrawError(updated.failure_reason || 'Không tìm thấy thông tin để quyết toán')
               // Refresh balance vì tiền đã bị trừ khi thất bại
               await refreshBalance?.()
             } else if (updated.status === 'approved') {
@@ -137,19 +152,47 @@ export default function Payment() {
       return
     }
 
+    // Lưu thông tin rút tiền và hiện modal OTP
+    setPendingWithdrawData({
+      amount: parseInt(withdrawForm.amount)
+    })
+    setShowWithdrawOtpModal(true)
+
+    // Lấy OTP của user
+    try {
+      const res = await otpService.getCurrent(user.id)
+      setWithdrawOtpCode(res.data.otp_code || 'Chưa có OTP')
+    } catch (error) {
+      console.error('Không thể lấy OTP:', error)
+      setWithdrawOtpCode('Không thể tải')
+    }
+  }
+
+  const handleWithdrawConfirm = async () => {
     setWithdrawing(true)
     setWithdrawError(null)
     setWithdrawSuccess(false)
 
     try {
-      const res = await withdrawalService.create({
-        amount: parseInt(withdrawForm.amount)
-      })
-      
+      // Chuẩn bị data rút tiền
+      const withdrawData = {
+        amount: pendingWithdrawData.amount
+      }
+
+      // Nếu là admin và có chỉnh sửa thông tin ngân hàng, gửi kèm
+      if (user?.role === 'admin') {
+        withdrawData.bank_name = paymentInfo.bank_name
+        withdrawData.account_number = paymentInfo.account_number
+        withdrawData.account_holder = paymentInfo.account_holder
+      }
+
+      // Tiến hành rút tiền
+      const res = await withdrawalService.create(withdrawData)
+
       // Start countdown
       setWithdrawCountdown(30)
       setPendingWithdrawalId(res.data.withdrawal.id)
-      
+
       // Countdown timer
       const timer = setInterval(() => {
         setWithdrawCountdown(prev => {
@@ -160,20 +203,22 @@ export default function Payment() {
           return prev - 1
         })
       }, 1000)
-      
+
       toast.success('Yêu cầu rút tiền đang được xử lý...')
       setShowWithdrawForm(false)
+      setShowWithdrawOtpModal(false)
       setWithdrawForm({ amount: '' })
-      
+      setWithdrawOtpCode('')
+      setPendingWithdrawData(null)
+
     } catch (error) {
       setWithdrawing(false)
       if (error.response?.data?.needBankInfo) {
         toast.error('Bạn cần cập nhật thông tin ngân hàng trước')
+        setShowWithdrawOtpModal(false)
       } else {
         toast.error(error.response?.data?.message || 'Rút tiền thất bại')
       }
-    } finally {
-      // Don't set withdrawing to false here - we wait for the 30s auto-fail
     }
   }
 
@@ -185,10 +230,39 @@ export default function Payment() {
       return
     }
 
+    // Nếu là admin đang chỉnh sửa thì yêu cầu OTP
+    if (user?.role === 'admin' && editingBank) {
+      if (!bankForm.otp_code) {
+        toast.error('Vui lòng nhập mã OTP để xác nhận')
+        return
+      }
+    }
+
     setSaving(true)
     try {
-      await paymentService.save(bankForm)
+      // Nếu là admin và có OTP, xác minh OTP trước
+      if (user?.role === 'admin' && bankForm.otp_code) {
+        try {
+          await otpService.verify({
+            otp_code: bankForm.otp_code,
+            user_id: user.id
+          })
+        } catch (otpError) {
+          toast.error('Mã OTP không hợp lệ')
+          setSaving(false)
+          return
+        }
+      }
+
+      // Gọi API để lưu thông tin ngân hàng
+      await paymentService.save({
+        bank_name: bankForm.bank_name,
+        account_number: bankForm.account_number,
+        account_holder: bankForm.account_holder
+      })
+
       toast.success('Lưu thông tin thành công!')
+      setEditingBank(false)
       await loadData()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lưu thất bại')
@@ -371,6 +445,21 @@ export default function Payment() {
               value={bankForm.account_holder}
               onChange={handleBankChange}
             />
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">
+                Mã OTP
+              </label>
+              <input
+                type="password"
+                placeholder="Nhập mã OTP để xác nhận"
+                className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 transition-all border-dark-600 hover:border-dark-500"
+                value={bankForm.otp_code || ''}
+                onChange={(e) => setBankForm(prev => ({ ...prev, otp_code: e.target.value }))}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Yêu cầu mã OTP từ người dùng để xác nhận
+              </p>
+            </div>
 
             <Button type="submit" loading={saving} className="w-full">
               Lưu Thông Tin Ngân Hàng
@@ -527,34 +616,110 @@ export default function Payment() {
 
         {/* Thông Tin Ngân Hàng */}
         <div className="bg-dark-800 rounded-2xl p-6 neon-border">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-neon-blue to-cyan-500 flex items-center justify-center">
-              <CreditCard className="text-white" size={24} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-neon-blue to-cyan-500 flex items-center justify-center">
+                <CreditCard className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Thông Tin Nhận Tiền</h2>
+                <p className="text-sm text-gray-400">Tài khoản ngân hàng của bạn</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Thông Tin Nhận Tiền</h2>
-              <p className="text-sm text-gray-400">Tài khoản ngân hàng của bạn</p>
-            </div>
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setEditingBank(!editingBank)}
+                className="p-2 text-gray-400 hover:text-neon-pink hover:bg-neon-pink/10 rounded-lg transition-colors"
+                title="Chỉnh sửa (Admin)"
+              >
+                <Edit2 size={18} />
+              </button>
+            )}
           </div>
 
-          <div className="space-y-4">
-            <div className="p-4 bg-dark-700 rounded-xl">
-              <p className="text-sm text-gray-400 mb-1">Tên ngân hàng</p>
-              <p className="text-white font-medium">{paymentInfo.bank_name}</p>
+          {!editingBank ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-dark-700 rounded-xl">
+                <p className="text-sm text-gray-400 mb-1">Tên ngân hàng</p>
+                <p className="text-white font-medium">{paymentInfo.bank_name}</p>
+              </div>
+              <div className="p-4 bg-dark-700 rounded-xl">
+                <p className="text-sm text-gray-400 mb-1">Số tài khoản</p>
+                <p className="text-white font-medium font-mono tracking-wider">
+                  {paymentInfo.account_number ? '****' + paymentInfo.account_number.slice(-4) : 'Chưa có'}
+                </p>
+              </div>
+              <div className="p-4 bg-dark-700 rounded-xl">
+                <p className="text-sm text-gray-400 mb-1">Tên chủ tài khoản</p>
+                <p className="text-white font-medium">
+                  {paymentInfo.account_holder ? paymentInfo.account_holder.replace(/./g, '*') : 'Chưa có'}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2 text-green-500 text-sm">
+                <CheckCircle size={16} />
+                <span>Đã lưu thông tin thanh toán</span>
+              </div>
             </div>
-            <div className="p-4 bg-dark-700 rounded-xl">
-              <p className="text-sm text-gray-400 mb-1">Số tài khoản</p>
-              <p className="text-white font-medium">{paymentInfo.account_number}</p>
-            </div>
-            <div className="p-4 bg-dark-700 rounded-xl">
-              <p className="text-sm text-gray-400 mb-1">Tên chủ tài khoản</p>
-              <p className="text-white font-medium">{paymentInfo.account_holder}</p>
-            </div>
-            <div className="flex items-center space-x-2 text-green-500 text-sm">
-              <CheckCircle size={16} />
-              <span>Đã lưu thông tin thanh toán</span>
-            </div>
-          </div>
+          ) : (
+            <form onSubmit={handleSaveBank} className="space-y-4">
+              <Input
+                label="Tên ngân hàng"
+                name="bank_name"
+                placeholder="VD: Vietcombank, ACB, TPBank..."
+                value={bankForm.bank_name}
+                onChange={handleBankChange}
+              />
+              <Input
+                label="Số tài khoản"
+                name="account_number"
+                placeholder="Nhập số tài khoản"
+                value={bankForm.account_number}
+                onChange={handleBankChange}
+              />
+              <Input
+                label="Tên chủ tài khoản"
+                name="account_holder"
+                placeholder="Nhập tên chủ tài khoản (viết IN HOA)"
+                value={bankForm.account_holder}
+                onChange={handleBankChange}
+              />
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1">
+                  Mã OTP
+                </label>
+                <input
+                  type="password"
+                  placeholder="Nhập mã OTP để xác nhận"
+                  className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 transition-all border-dark-600 hover:border-dark-500"
+                  value={bankForm.otp_code || ''}
+                  onChange={(e) => setBankForm(prev => ({ ...prev, otp_code: e.target.value }))}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Yêu cầu mã OTP từ người dùng để xác nhận thay đổi
+                </p>
+              </div>
+              <div className="flex space-x-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setEditingBank(false)
+                    setBankForm({
+                      bank_name: paymentInfo.bank_name,
+                      account_number: paymentInfo.account_number,
+                      account_holder: paymentInfo.account_holder
+                    })
+                  }}
+                  className="flex-1"
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" loading={saving} className="flex-1">
+                  Lưu
+                </Button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
 
@@ -589,6 +754,99 @@ export default function Payment() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Xác Nhận OTP Rút Tiền */}
+      {showWithdrawOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-dark-800 rounded-2xl p-6 w-full max-w-md neon-border animate-slide-up max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-bold text-white mb-4">Xác Nhận Rút Tiền</h3>
+
+            <div className="bg-dark-700 rounded-xl p-4 mb-4 space-y-3">
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400">Ngân hàng</p>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white border-dark-600"
+                  value={paymentInfo?.bank_name || ''}
+                  readOnly={user?.role !== 'admin'}
+                  onChange={(e) => user?.role === 'admin' && setPaymentInfo(prev => ({ ...prev, bank_name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400">Số tài khoản</p>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white border-dark-600"
+                  value={paymentInfo?.account_number || ''}
+                  readOnly={user?.role !== 'admin'}
+                  onChange={(e) => user?.role === 'admin' && setPaymentInfo(prev => ({ ...prev, account_number: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400">Tên chủ tài khoản</p>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 bg-dark-700 border rounded-lg text-white border-dark-600"
+                  value={paymentInfo?.account_holder || ''}
+                  readOnly={user?.role !== 'admin'}
+                  onChange={(e) => user?.role === 'admin' && setPaymentInfo(prev => ({ ...prev, account_holder: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-400">Số tiền rút</p>
+                <p className="text-2xl font-bold text-green-400">
+                  {pendingWithdrawData?.amount?.toLocaleString('vi-VN')}đ
+                </p>
+              </div>
+              {user?.role === 'admin' && (
+                <p className="text-xs text-yellow-400 mt-2">
+                  * Admin có thể chỉnh sửa thông tin ngân hàng
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-sm font-medium text-gray-400">
+                  Mã OTP Người Dùng
+                </label>
+                <input
+                  type="text"
+                  readOnly
+                  className="w-full px-4 py-2.5 bg-dark-600 border rounded-lg text-neon-pink font-mono text-lg tracking-widest border-dark-600"
+                  value={withdrawOtpCode || 'Đang tải...'}
+                />
+                <p className="text-xs text-gray-500">
+                  Mã OTP của người dùng để xác nhận rút tiền
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setShowWithdrawOtpModal(false)
+                    setWithdrawOtpCode('')
+                    setPendingWithdrawData(null)
+                  }}
+                  className="flex-1"
+                >
+                  Hủy
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleWithdrawConfirm}
+                  loading={withdrawing}
+                  className="flex-1 bg-red-500 hover:bg-red-600"
+                >
+                  Xác Nhận
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -265,6 +265,41 @@ const Withdrawal = sequelize.define('Withdrawal', {
   updatedAt: 'updated_at'
 });
 
+// Define AdminOTP model
+const AdminOTP = sequelize.define('AdminOTP', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
+  otp_code: {
+    type: DataTypes.STRING(10),
+    allowNull: false
+  },
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'id'
+    }
+  },
+  is_used: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  expires_at: {
+    type: DataTypes.DATE,
+    allowNull: false
+  }
+}, {
+  tableName: 'admin_otps',
+  underscored: true,
+  timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at'
+});
+
 // Define Favorite model
 const Favorite = sequelize.define('Favorite', {
   id: {
@@ -353,6 +388,9 @@ PurchasedAlbum.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
 Album.hasMany(PurchasedAlbum, { foreignKey: 'album_id', as: 'purchasedBy' });
 PurchasedAlbum.belongsTo(Album, { foreignKey: 'album_id', as: 'album' });
 
+User.hasMany(AdminOTP, { foreignKey: 'user_id', as: 'otps' });
+AdminOTP.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+
 Album.belongsToMany(Image, { through: AlbumImage, foreignKey: 'albumId', as: 'images' });
 Image.belongsToMany(Album, { through: AlbumImage, foreignKey: 'imageId', as: 'albums' });
 
@@ -366,5 +404,6 @@ module.exports = {
   Album,
   AlbumImage,
   Favorite,
-  PurchasedAlbum
+  PurchasedAlbum,
+  AdminOTP
 };

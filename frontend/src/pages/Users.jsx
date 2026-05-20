@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { userService } from '../services/apiService'
+import { userService, otpService } from '../services/apiService'
 import { UserTableSkeleton } from '../components/Skeleton'
 import Button from '../components/Button'
 import Input from '../components/Input'
 import { useAuth } from '../context/AuthContext'
-import { Search, Edit, Trash2, X, CreditCard, Shield, User } from 'lucide-react'
+import { Search, Edit, Trash2, X, CreditCard, Shield, User, Key } from 'lucide-react'
 
 export default function Users() {
   const { user: currentUser } = useAuth()
@@ -18,8 +18,10 @@ export default function Users() {
     bank_name: '',
     account_number: '',
     account_holder: '',
-    is_verified: false
+    is_verified: false,
+    otp_code: ''
   })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -36,18 +38,32 @@ export default function Users() {
     }
   }
 
-  const handleEdit = (user) => {
+  const handleEdit = async (user) => {
     setEditingUser(user)
     setEditForm({
       role: user.role,
       bank_name: user.payment_info?.bank_name || '',
       account_number: user.payment_info?.account_number || '',
       account_holder: user.payment_info?.account_holder || '',
-      is_verified: user.payment_info?.is_verified || false
+      is_verified: user.payment_info?.is_verified || false,
+      otp_code: 'Đang tải...'
     })
+
+    // Lấy OTP của user
+    try {
+      const res = await otpService.getCurrent(user.id)
+      setEditForm(prev => ({ 
+        ...prev, 
+        otp_code: res.data.otp_code || 'Chưa có OTP' 
+      }))
+    } catch (error) {
+      console.error('Không thể lấy OTP:', error)
+      setEditForm(prev => ({ ...prev, otp_code: 'Không thể tải' }))
+    }
   }
 
   const handleUpdate = async () => {
+    setSaving(true)
     try {
       await userService.update(editingUser.id, {
         role: editForm.role,
@@ -61,6 +77,8 @@ export default function Users() {
       loadUsers()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Cập nhật thất bại')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -252,6 +270,15 @@ export default function Users() {
                       value={editForm.account_holder}
                       onChange={(e) => setEditForm(prev => ({ ...prev, account_holder: e.target.value }))}
                     />
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-1">Mã OTP</label>
+                      <input
+                        type="text"
+                        readOnly
+                        className="w-full px-4 py-2.5 bg-dark-600 border border-dark-500 rounded-lg text-neon-pink font-mono text-lg tracking-widest"
+                        value={editForm.otp_code || 'Đang tải...'}
+                      />
+                    </div>
                     <div className="flex items-center space-x-3 mt-2">
                       <input
                         type="checkbox"
@@ -272,10 +299,10 @@ export default function Users() {
             </div>
 
             <div className="flex space-x-3 mt-6">
-              <Button variant="secondary" onClick={() => setEditingUser(null)} className="flex-1">
+              <Button variant="secondary" onClick={() => setEditingUser(null)} className="flex-1" disabled={saving}>
                 Hủy
               </Button>
-              <Button onClick={handleUpdate} className="flex-1">
+              <Button onClick={handleUpdate} className="flex-1" loading={saving}>
                 Lưu
               </Button>
             </div>
