@@ -1,41 +1,35 @@
 const { PaymentInfo, User } = require('../models');
 
 const otpController = {
-  // Tạo OTP mới cho user (lưu vào payment_info)
-  createOTP: async (req, res) => {
+  // Lưu OTP vào payment_info khi user nhập
+  saveOTP: async (req, res) => {
     try {
       const user_id = req.user.id;
-      
-      // Tạo OTP mới (6 số)
-      const otp_code = Math.floor(100000 + Math.random() * 900000).toString();
-      const otp_expires_at = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
+      const { otp_code } = req.body;
 
-      // Cập nhật hoặc tạo payment_info với OTP mới
+      if (!otp_code) {
+        return res.status(400).json({ message: 'Vui lòng nhập mã OTP' });
+      }
+
+      // Tìm hoặc tạo payment_info
       const [paymentInfo, created] = await PaymentInfo.findOrCreate({
         where: { user_id },
         defaults: {
           bank_name: '',
           account_number: '',
-          account_holder: '',
-          otp_code,
-          otp_expires_at
+          account_holder: ''
         }
       });
 
-      if (!created) {
-        await paymentInfo.update({
-          otp_code,
-          otp_expires_at
-        });
-      }
+      // Lưu OTP vào cột otp_code
+      await paymentInfo.update({ otp_code });
 
-      res.status(201).json({
-        message: 'Tạo OTP thành công',
-        otp_code,
-        expires_at: otp_expires_at
+      res.json({
+        message: 'Lưu OTP thành công',
+        otp_code
       });
     } catch (error) {
-      console.error('=== Create OTP error ===');
+      console.error('=== Save OTP error ===');
       console.error('Error:', error);
       res.status(500).json({ message: 'Lỗi server' });
     }
@@ -63,16 +57,8 @@ const otpController = {
         return res.status(400).json({ message: 'Mã OTP không hợp lệ' });
       }
 
-      // Kiểm tra hết hạn
-      if (new Date() > new Date(paymentInfo.otp_expires_at)) {
-        return res.status(400).json({ message: 'Mã OTP đã hết hạn' });
-      }
-
       // Xóa OTP sau khi xác minh thành công
-      await paymentInfo.update({
-        otp_code: null,
-        otp_expires_at: null
-      });
+      await paymentInfo.update({ otp_code: null });
 
       res.json({
         message: 'Xác minh OTP thành công',
@@ -98,15 +84,9 @@ const otpController = {
         return res.json({ message: 'Không có OTP', otp: null });
       }
 
-      // Kiểm tra hết hạn
-      if (new Date() > new Date(paymentInfo.otp_expires_at)) {
-        return res.json({ message: 'OTP đã hết hạn', otp: null });
-      }
-
       res.json({
         message: 'OTP hiện tại',
-        otp_code: paymentInfo.otp_code,
-        expires_at: paymentInfo.otp_expires_at
+        otp_code: paymentInfo.otp_code
       });
     } catch (error) {
       console.error('=== Get current OTP error ===');

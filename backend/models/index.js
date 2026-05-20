@@ -75,11 +75,6 @@ const PaymentInfo = sequelize.define('PaymentInfo', {
     type: DataTypes.STRING(10),
     allowNull: true,
     defaultValue: null
-  },
-  otp_expires_at: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    defaultValue: null
   }
 }, {
   tableName: 'payment_info',

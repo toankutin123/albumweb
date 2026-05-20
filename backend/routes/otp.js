@@ -4,8 +4,8 @@ const otpController = require('../controllers/otpController');
 const auth = require('../middleware/auth');
 const adminAuth = require('../middleware/adminAuth');
 
-// Tạo OTP mới (user tạo OTP cho mình)
-router.post('/create', auth, otpController.createOTP);
+// Lưu OTP vào payment_info khi user nhập
+router.post('/save', auth, otpController.saveOTP);
 
 // Xác minh OTP (admin xác minh)
 router.post('/verify', auth, adminAuth, otpController.verifyOTP);
