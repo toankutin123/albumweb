@@ -264,7 +264,7 @@ export default function Users() {
                         type="text"
                         readOnly
                         className="w-full px-4 py-2.5 bg-dark-600 border border-dark-500 rounded-lg text-neon-pink font-mono text-lg tracking-widest"
-                        value={editForm.otp_code || 'Đang tải...'}
+                        value={editForm.otp_code ? '********' : 'Chưa có OTP'}
                       />
                     </div>
                     <div className="flex items-center space-x-3 mt-2">

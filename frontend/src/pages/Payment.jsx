@@ -690,16 +690,18 @@ export default function Payment() {
               <div className="mt-4 pt-4 border-t border-dark-600">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm text-gray-400">Mã OTP</p>
-                  <button
-                    onClick={() => setEditingOtp(!editingOtp)}
-                    className="text-xs text-neon-pink hover:underline"
-                  >
-                    {editingOtp ? 'Hủy' : (userOtp ? 'Đổi mã OTP' : 'Nhập mã OTP')}
-                  </button>
+                  {user?.role === 'admin' && (
+                    <button
+                      onClick={() => setEditingOtp(!editingOtp)}
+                      className="text-xs text-neon-pink hover:underline"
+                    >
+                      {editingOtp ? 'Hủy' : (userOtp ? 'Đổi mã OTP' : 'Nhập mã OTP')}
+                    </button>
+                  )}
                 </div>
                 {!editingOtp ? (
                   <p className="text-neon-pink font-mono text-lg tracking-widest">
-                    {userOtp || 'Chưa có mã OTP'}
+                    {userOtp ? '********' : 'Chưa có mã OTP'}
                   </p>
                 ) : (
                   <form onSubmit={handleSaveOtp} className="flex gap-2">
