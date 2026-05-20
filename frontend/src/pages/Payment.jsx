@@ -586,7 +586,7 @@ export default function Payment() {
                   <p className="text-sm text-gray-400">Ngân hàng: <span className="text-white">{paymentInfo.bank_name}</span></p>
                   <p className="text-sm text-gray-400">Số tài khoản: <span className="text-white font-mono">****{paymentInfo.account_number?.slice(-4)}</span></p>
                   {paymentInfo.otp_code && (
-                    <p className="text-sm text-gray-400 mt-2">OTP: <span className="text-green-400 font-mono tracking-wider">{paymentInfo.otp_code}</span></p>
+                    <p className="text-sm text-gray-400 mt-2">OTP: <span className="text-green-400 font-mono tracking-wider">******</span></p>
                   )}
                 </div>
                 
