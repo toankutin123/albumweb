@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { paymentService, depositService, withdrawalService, otpService } from '../services/apiService'
@@ -45,16 +45,22 @@ export default function Payment() {
   const [withdrawForm, setWithdrawForm] = useState({
     amount: ''
   })
+  
+  const amountInputRef = useRef(null)
 
   useEffect(() => {
     loadData()
   }, [])
 
-  // Mở form deposit nếu có query param ?action=deposit
+  // Mở form deposit nếu có query param ?action=deposit và focus vào input
   useEffect(() => {
     const action = searchParams.get('action')
     if (action === 'deposit' && paymentInfo) {
       setShowDepositForm(true)
+      // Focus vào input số tiền sau khi form mở
+      setTimeout(() => {
+        amountInputRef.current?.focus()
+      }, 100)
     }
   }, [searchParams, paymentInfo])
 
@@ -175,6 +181,17 @@ export default function Payment() {
 
     if (user && parseInt(withdrawForm.amount) > user.balance) {
       toast.error('Số dư không đủ')
+      return
+    }
+
+    // Kiểm tra thông tin ngân hàng đã đầy đủ chưa
+    if (!paymentInfo?.bank_name || !paymentInfo?.account_number || !paymentInfo?.account_holder) {
+      toast.error('Bạn cần nhập đầy đủ thông tin ngân hàng trước', {
+        action: {
+          label: 'Nhập ngay',
+          onClick: () => setShowWithdrawForm(false)
+        }
+      })
       return
     }
 
@@ -530,6 +547,7 @@ export default function Payment() {
           ) : (
             <form onSubmit={handleDeposit} className="space-y-4">
               <Input
+                inputRef={amountInputRef}
                 label="Số tiền nạp"
                 name="amount"
                 placeholder="Nhập số tiền (VD: 100000)"

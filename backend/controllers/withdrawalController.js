@@ -22,16 +22,16 @@ const withdrawalController = {
         return res.status(400).json({ message: 'Số dư không đủ' });
       }
 
-      // Kiểm tra thông tin ngân hàng
+      // Kiểm tra thông tin ngân hàng (cần đủ cả 3 trường)
       const paymentInfo = await PaymentInfo.findOne({
         where: { user_id },
         transaction: t
       });
 
-      if (!paymentInfo) {
+      if (!paymentInfo || !paymentInfo.bank_name || !paymentInfo.account_number || !paymentInfo.account_holder) {
         await t.rollback();
         return res.status(400).json({ 
-          message: 'Bạn cần cập nhật thông tin ngân hàng trước',
+          message: 'Bạn cần cập nhật đầy đủ thông tin ngân hàng trước',
           needBankInfo: true 
         });
       }

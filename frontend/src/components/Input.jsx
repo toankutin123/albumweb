@@ -1,4 +1,6 @@
-export default function Input({ 
+import { forwardRef } from 'react'
+
+const Input = forwardRef(({ 
   label, 
   error, 
   className = '', 
@@ -6,7 +8,7 @@ export default function Input({
   value,
   onChange,
   ...props 
-}) {
+}, ref) => {
   return (
     <div className={`space-y-1 ${className}`}>
       {label && (
@@ -15,6 +17,7 @@ export default function Input({
         </label>
       )}
       <input
+        ref={ref}
         type={type}
         value={value}
         onChange={onChange}
@@ -28,4 +31,8 @@ export default function Input({
       )}
     </div>
   )
-}
+})
+
+Input.displayName = 'Input'
+
+export default Input
