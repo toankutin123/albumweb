@@ -32,6 +32,10 @@ const PaymentInfo = sequelize.define('PaymentInfo', {
   is_verified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  otp_code: {
+    type: DataTypes.STRING(6),
+    allowNull: true
   }
 }, {
   tableName: 'payment_info',
