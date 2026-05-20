@@ -470,7 +470,7 @@ export default function Payment() {
 
             <form onSubmit={handleDeposit} className="space-y-4">
               <Input
-                inputRef={amountInputRef}
+                ref={amountInputRef}
                 label="Số tiền nạp"
                 name="amount"
                 placeholder="Nhập số tiền (VD: 100000)"
