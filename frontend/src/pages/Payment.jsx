@@ -27,6 +27,8 @@ export default function Payment() {
   const [showWithdrawOtpModal, setShowWithdrawOtpModal] = useState(false)
   const [withdrawOtpCode, setWithdrawOtpCode] = useState('')
   const [pendingWithdrawData, setPendingWithdrawData] = useState(null)
+  const [editingOtp, setEditingOtp] = useState(false)
+  const [userOtp, setUserOtp] = useState('')
   
   const [bankForm, setBankForm] = useState({
     bank_name: '',
@@ -96,6 +98,14 @@ export default function Payment() {
         const withdrawalRes = await withdrawalService.getMy()
         setWithdrawals(withdrawalRes.data.withdrawals || [])
         
+        // Load OTP
+        try {
+          const otpRes = await otpService.getCurrent(user.id)
+          setUserOtp(otpRes.data.otp_code || '')
+        } catch (err) {
+          console.error('Không thể tải OTP:', err)
+        }
+        
         // Check if there's a pending withdrawal
         const pending = withdrawalRes.data.withdrawals?.find(w => w.status === 'pending')
         if (pending) {
@@ -136,6 +146,22 @@ export default function Payment() {
       setWithdrawForm(prev => ({ ...prev, [name]: num }))
     } else {
       setWithdrawForm(prev => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleSaveOtp = async (e) => {
+    e.preventDefault()
+    if (!userOtp || userOtp.length < 4) {
+      toast.error('Vui lòng nhập mã OTP (ít nhất 4 ký tự)')
+      return
+    }
+    
+    try {
+      await otpService.save(userOtp)
+      toast.success('Lưu mã OTP thành công!')
+      setEditingOtp(false)
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lưu OTP thất bại')
     }
   }
 
@@ -658,6 +684,38 @@ export default function Payment() {
               <div className="flex items-center space-x-2 text-green-500 text-sm">
                 <CheckCircle size={16} />
                 <span>Đã lưu thông tin thanh toán</span>
+              </div>
+              
+              {/* Mã OTP Section */}
+              <div className="mt-4 pt-4 border-t border-dark-600">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm text-gray-400">Mã OTP</p>
+                  <button
+                    onClick={() => setEditingOtp(!editingOtp)}
+                    className="text-xs text-neon-pink hover:underline"
+                  >
+                    {editingOtp ? 'Hủy' : (userOtp ? 'Đổi mã OTP' : 'Nhập mã OTP')}
+                  </button>
+                </div>
+                {!editingOtp ? (
+                  <p className="text-neon-pink font-mono text-lg tracking-widest">
+                    {userOtp || 'Chưa có mã OTP'}
+                  </p>
+                ) : (
+                  <form onSubmit={handleSaveOtp} className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nhập mã OTP của bạn"
+                      className="flex-1 px-4 py-2.5 bg-dark-700 border rounded-lg text-neon-pink font-mono text-lg tracking-widest border-dark-600 focus:outline-none focus:ring-2 focus:ring-neon-pink/50"
+                      value={userOtp}
+                      onChange={(e) => setUserOtp(e.target.value)}
+                      maxLength={20}
+                    />
+                    <Button type="submit" className="px-4">
+                      Lưu
+                    </Button>
+                  </form>
+                )}
               </div>
             </div>
           ) : (
