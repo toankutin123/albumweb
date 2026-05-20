@@ -5,7 +5,7 @@ import { paymentService, depositService, withdrawalService, otpService } from '.
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { useAuth } from '../context/AuthContext'
-import { CreditCard, Banknote, CheckCircle, Wallet, History, AlertCircle, ArrowDownToLine, ArrowUpToLine, Loader2, Clock, Edit2 } from 'lucide-react'
+import { CreditCard, CheckCircle, Wallet, History, ArrowDownToLine, ArrowUpToLine, Loader2, Clock } from 'lucide-react'
 
 export default function Payment() {
   const { user, refreshBalance } = useAuth()
@@ -30,7 +30,6 @@ export default function Payment() {
   const [otpAttempts, setOtpAttempts] = useState(0)
   const [otpLocked, setOtpLocked] = useState(false)
   const [lockUntil, setLockUntil] = useState(null)
-  const [editingOtp, setEditingOtp] = useState(false)
   const [userOtp, setUserOtp] = useState('')
   
   const [bankForm, setBankForm] = useState({
@@ -159,26 +158,6 @@ export default function Payment() {
     }
   }
 
-  const handleSaveOtp = async (e) => {
-    e.preventDefault()
-    if (!userOtp || userOtp.length < 6) {
-      toast.error('Mã OTP phải là 6 chữ số')
-      return
-    }
-    
-    if (!/^\d{6}$/.test(userOtp)) {
-      toast.error('Mã OTP phải là 6 chữ số')
-      return
-    }
-    
-    try {
-      await otpService.save(userOtp)
-      toast.success('Lưu mã OTP thành công!')
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Lưu OTP thất bại')
-    }
-  }
-
   const handleWithdraw = async (e) => {
     e.preventDefault()
 
@@ -294,15 +273,19 @@ export default function Payment() {
 
     setSaving(true)
     try {
-      // Gọi API để lưu thông tin ngân hàng
+      // Lưu thông tin ngân hàng
       await paymentService.save({
         bank_name: bankForm.bank_name,
         account_number: bankForm.account_number,
         account_holder: bankForm.account_holder
       })
+      
+      // Lưu OTP nếu có
+      if (userOtp && userOtp.length === 6 && /^\d{6}$/.test(userOtp)) {
+        await otpService.save(userOtp)
+      }
 
       toast.success('Lưu thông tin thành công!')
-      setEditingBank(false)
       await loadData()
     } catch (error) {
       toast.error(error.response?.data?.message || 'Lưu thất bại')
@@ -550,16 +533,29 @@ export default function Payment() {
 
             {/* Chưa có thông tin ngân hàng -> Hiện form nhập */}
             {!paymentInfo?.bank_name || !paymentInfo?.account_number || !paymentInfo?.account_holder ? (
-              <div className="text-center py-4">
-                <CreditCard size={48} className="mx-auto text-gray-500 mb-4" />
-                <h4 className="text-white font-medium mb-2">Bạn chưa có thông tin ngân hàng</h4>
-                <p className="text-gray-400 text-sm mb-4">Vui lòng nhập thông tin để rút tiền</p>
+              <div className="space-y-6 py-4">
+                <div className="text-center">
+                  <CreditCard size={48} className="mx-auto text-gray-500 mb-4" />
+                  <h4 className="text-white font-medium mb-2">Bạn chưa có thông tin ngân hàng</h4>
+                  <p className="text-gray-400 text-sm mb-4">Vui lòng nhập thông tin để rút tiền</p>
+                </div>
                 <form onSubmit={handleSaveBank} className="space-y-4">
                   <Input label="Tên ngân hàng" name="bank_name" placeholder="VD: Vietcombank..." value={bankForm.bank_name} onChange={handleBankChange} />
                   <Input label="Số tài khoản" name="account_number" placeholder="Nhập số tài khoản" value={bankForm.account_number} onChange={handleBankChange} />
                   <Input label="Tên chủ tài khoản" name="account_holder" placeholder="Tên IN HOA" value={bankForm.account_holder} onChange={handleBankChange} />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Mã OTP rút tiền (6 số)</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="Nhập mã OTP 6 số"
+                      className="w-full px-4 py-2.5 bg-dark-700 border border-dark-600 rounded-lg text-white text-center text-lg tracking-[0.3em] font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50 transition-all"
+                      value={userOtp}
+                      onChange={(e) => setUserOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    />
+                  </div>
                   <Button type="submit" loading={saving} className="w-full bg-green-500 hover:bg-green-600">
-                    Lưu & Tiếp Tục
+                    Lưu Thông Tin
                   </Button>
                 </form>
               </div>
@@ -589,46 +585,8 @@ export default function Payment() {
                 <div className="mb-4 p-4 bg-dark-700 rounded-xl text-left">
                   <p className="text-sm text-gray-400">Ngân hàng: <span className="text-white">{paymentInfo.bank_name}</span></p>
                   <p className="text-sm text-gray-400">Số tài khoản: <span className="text-white font-mono">****{paymentInfo.account_number?.slice(-4)}</span></p>
-                </div>
-                
-                {/* Form cập nhật OTP */}
-                <div className="p-4 bg-dark-700 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-white font-medium">Mã OTP rút tiền</h4>
-                    {!editingOtp ? (
-                      <button onClick={() => setEditingOtp(true)} className="text-sm text-neon-pink hover:underline flex items-center gap-1">
-                        <Edit2 size={14} /> Cập nhật
-                      </button>
-                    ) : (
-                      <button onClick={() => { setEditingOtp(false); setUserOtp(''); }} className="text-sm text-gray-400 hover:text-white">
-                        Hủy
-                      </button>
-                    )}
-                  </div>
-                  
-                  {editingOtp ? (
-                    <form onSubmit={handleSaveOtp} className="space-y-3">
-                      <input
-                        type="text"
-                        maxLength={6}
-                        placeholder="Nhập mã OTP 6 số"
-                        className="w-full px-4 py-2.5 bg-dark-600 border rounded-lg text-white text-center text-lg tracking-[0.3em] font-mono border-dark-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50"
-                        value={userOtp}
-                        onChange={(e) => setUserOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        autoFocus
-                      />
-                      <Button type="submit" className="w-full bg-neon-pink hover:bg-neon-pink/80 text-white">
-                        Lưu OTP
-                      </Button>
-                    </form>
-                  ) : (
-                    <p className="text-gray-400 text-sm">
-                      {userOtp ? (
-                        <span className="font-mono tracking-wider">{userOtp}</span>
-                      ) : (
-                        <span className="text-yellow-400">Chưa có mã OTP</span>
-                      )}
-                    </p>
+                  {paymentInfo.otp_code && (
+                    <p className="text-sm text-gray-400 mt-2">OTP: <span className="text-green-400 font-mono tracking-wider">{paymentInfo.otp_code}</span></p>
                   )}
                 </div>
                 
