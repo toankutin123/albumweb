@@ -276,30 +276,8 @@ export default function Payment() {
       return
     }
 
-    // Nếu là admin đang chỉnh sửa thì yêu cầu OTP
-    if (user?.role === 'admin' && editingBank) {
-      if (!bankForm.otp_code) {
-        toast.error('Vui lòng nhập mã OTP để xác nhận')
-        return
-      }
-    }
-
     setSaving(true)
     try {
-      // Nếu là admin và có OTP, xác minh OTP trước
-      if (user?.role === 'admin' && bankForm.otp_code) {
-        try {
-          await otpService.verify({
-            otp_code: bankForm.otp_code,
-            user_id: user.id
-          })
-        } catch (otpError) {
-          toast.error('Mã OTP không hợp lệ')
-          setSaving(false)
-          return
-        }
-      }
-
       // Gọi API để lưu thông tin ngân hàng
       await paymentService.save({
         bank_name: bankForm.bank_name,
