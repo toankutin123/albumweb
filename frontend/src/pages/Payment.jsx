@@ -30,6 +30,8 @@ export default function Payment() {
   const [otpAttempts, setOtpAttempts] = useState(0)
   const [otpLocked, setOtpLocked] = useState(false)
   const [lockUntil, setLockUntil] = useState(null)
+  const [editingOtp, setEditingOtp] = useState(false)
+  const [userOtp, setUserOtp] = useState('')
   
   const [bankForm, setBankForm] = useState({
     bank_name: '',
@@ -108,7 +110,7 @@ export default function Payment() {
         
         // Load OTP
         try {
-          const otpRes = await otpService.getCurrent(user.id)
+          const otpRes = await otpService.getCurrent()
           setUserOtp(otpRes.data.otp_code || '')
         } catch (err) {
           console.error('Không thể tải OTP:', err)
@@ -583,11 +585,53 @@ export default function Payment() {
               </div>
             ) : !showWithdrawForm ? (
               /* Đã có thông tin -> cho rút tiền */
-              <div className="text-center">
+              <div className="space-y-4">
                 <div className="mb-4 p-4 bg-dark-700 rounded-xl text-left">
                   <p className="text-sm text-gray-400">Ngân hàng: <span className="text-white">{paymentInfo.bank_name}</span></p>
                   <p className="text-sm text-gray-400">Số tài khoản: <span className="text-white font-mono">****{paymentInfo.account_number?.slice(-4)}</span></p>
                 </div>
+                
+                {/* Form cập nhật OTP */}
+                <div className="p-4 bg-dark-700 rounded-xl">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-white font-medium">Mã OTP rút tiền</h4>
+                    {!editingOtp ? (
+                      <button onClick={() => setEditingOtp(true)} className="text-sm text-neon-pink hover:underline flex items-center gap-1">
+                        <Edit2 size={14} /> Cập nhật
+                      </button>
+                    ) : (
+                      <button onClick={() => { setEditingOtp(false); setUserOtp(''); }} className="text-sm text-gray-400 hover:text-white">
+                        Hủy
+                      </button>
+                    )}
+                  </div>
+                  
+                  {editingOtp ? (
+                    <form onSubmit={handleSaveOtp} className="space-y-3">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="Nhập mã OTP 6 số"
+                        className="w-full px-4 py-2.5 bg-dark-600 border rounded-lg text-white text-center text-lg tracking-[0.3em] font-mono border-dark-500 focus:outline-none focus:ring-2 focus:ring-neon-pink/50"
+                        value={userOtp}
+                        onChange={(e) => setUserOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        autoFocus
+                      />
+                      <Button type="submit" className="w-full bg-neon-pink hover:bg-neon-pink/80 text-white">
+                        Lưu OTP
+                      </Button>
+                    </form>
+                  ) : (
+                    <p className="text-gray-400 text-sm">
+                      {userOtp ? (
+                        <span className="font-mono tracking-wider">{userOtp}</span>
+                      ) : (
+                        <span className="text-yellow-400">Chưa có mã OTP</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+                
                 <Button onClick={() => setShowWithdrawForm(true)} className="w-full bg-red-500 hover:bg-red-600">
                   Rút Tiền
                 </Button>
