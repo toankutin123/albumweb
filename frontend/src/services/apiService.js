@@ -55,7 +55,6 @@ export const withdrawalService = {
 }
 
 export const otpService = {
-  create: () => api.post('/otp/create'),
   verify: (data) => api.post('/otp/verify', data),
   verifyForWithdraw: (data) => api.post('/otp/verify', data),
   getCurrent: () => api.get('/otp/current'),
