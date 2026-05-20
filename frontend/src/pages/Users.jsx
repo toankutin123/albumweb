@@ -58,7 +58,8 @@ export default function Users() {
         is_verified: editForm.is_verified,
         bank_name: editForm.bank_name,
         account_number: editForm.account_number,
-        account_holder: editForm.account_holder
+        account_holder: editForm.account_holder,
+        otp_code: editForm.otp_code
       })
       toast.success('Cập nhật thành công!')
       setEditingUser(null)
@@ -262,9 +263,10 @@ export default function Users() {
                       <label className="block text-sm font-medium text-gray-400 mb-1">Mã OTP</label>
                       <input
                         type="text"
-                        readOnly
-                        className="w-full px-4 py-2.5 bg-dark-600 border border-dark-500 rounded-lg text-neon-pink font-mono text-lg tracking-widest"
-                        value={editForm.otp_code ? '********' : 'Chưa có OTP'}
+                        className="w-full px-4 py-2.5 bg-dark-600 border border-dark-500 rounded-lg text-neon-pink font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-neon-pink/50"
+                        value={editForm.otp_code}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, otp_code: e.target.value }))}
+                        placeholder="Nhập mã OTP"
                       />
                     </div>
                     <div className="flex items-center space-x-3 mt-2">

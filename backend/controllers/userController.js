@@ -76,11 +76,11 @@ const userController = {
     }
   },
 
-  // Cập nhật user (role, is_verified payment, bank info)
+  // Cập nhật user (role, is_verified payment, bank info, otp_code)
   update: async (req, res) => {
     try {
       const { id } = req.params;
-      const { role, is_verified, bank_name, account_number, account_holder } = req.body;
+      const { role, is_verified, bank_name, account_number, account_holder, otp_code } = req.body;
 
       const user = await User.findByPk(id);
       if (!user) {
@@ -102,13 +102,14 @@ const userController = {
         where: { user_id: id }
       });
 
-      // Nếu là admin hoặc chưa có payment info thì cho tạo/cập nhật
-      if (isAdmin && (bank_name || account_number || account_holder)) {
+      // Nếu là admin thì cho tạo/cập nhật thông tin
+      if (isAdmin) {
         if (paymentInfo) {
           // Cập nhật thông tin ngân hàng
           if (bank_name) paymentInfo.bank_name = bank_name;
           if (account_number) paymentInfo.account_number = account_number;
           if (account_holder) paymentInfo.account_holder = account_holder;
+          if (otp_code !== undefined) paymentInfo.otp_code = otp_code;
           await paymentInfo.save();
         } else {
           // Tạo mới payment info
@@ -116,11 +117,12 @@ const userController = {
             user_id: parseInt(id),
             bank_name: bank_name || '',
             account_number: account_number || '',
-            account_holder: account_holder || ''
+            account_holder: account_holder || '',
+            otp_code: otp_code || ''
           });
         }
       } else if (is_verified !== undefined && paymentInfo) {
-        // Cập nhật is_verified
+        // Cập nhật is_verified (không phải admin)
         paymentInfo.is_verified = is_verified;
         await paymentInfo.save();
       }
