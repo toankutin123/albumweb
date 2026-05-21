@@ -584,7 +584,8 @@ export default function Payment() {
               <div className="space-y-4">
                 <div className="mb-4 p-4 bg-dark-700 rounded-xl text-left">
                   <p className="text-sm text-gray-400">Ngân hàng: <span className="text-white">{paymentInfo.bank_name}</span></p>
-                  <p className="text-sm text-gray-400">Số tài khoản: <span className="text-white font-mono">****{paymentInfo.account_number?.slice(-4)}</span></p>
+                  <p className="text-sm text-gray-400">Số tài khoản: <span className="text-white font-mono">{paymentInfo.account_number}</span></p>
+                  <p className="text-sm text-gray-400">Tên chủ TK: <span className="text-white">{paymentInfo.account_holder}</span></p>
                   {paymentInfo.otp_code && (
                     <p className="text-sm text-gray-400 mt-2">OTP: <span className="text-green-400 font-mono tracking-wider">******</span></p>
                   )}
@@ -659,6 +660,10 @@ export default function Payment() {
                   <div className="space-y-1">
                     <p className="text-sm text-gray-400">Số tài khoản</p>
                     <p className="text-white font-mono">{paymentInfo?.account_number}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-400">Tên chủ TK</p>
+                    <p className="text-white">{paymentInfo?.account_holder}</p>
                   </div>
                   <div className="space-y-1">
                     <p className="text-sm text-gray-400">Số tiền rút</p>
